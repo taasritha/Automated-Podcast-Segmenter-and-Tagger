@@ -1,0 +1,1783 @@
+{
+  "episode_id": "cde3a658a1c94dcb898fa4fc1f5fc2ee",
+  "title": "945: Chrome Dev Tools MCP Server",
+  "audio_url": "https://audio.listennotes.com/e/p/cde3a658a1c94dcb898fa4fc1f5fc2ee/",
+  "full_transcript": " Welcome to syntax today. We have a show on Chrome's new dev tools MCP service is actually kind of nifty As a way to both help you debug as well as as figure out what's going on your website programmatically controls Figure out network issues that are going on. There's a whole bunch of use cases So we're gonna talk about that today. My name is West Boston a developer from Canada with me as always is mr. Scott to Linsky How you doing Scott? Oh man, I'm doing much better last week at the start of the ricky episode when I recorded within like the first couple of moments And it might have been before we hit record. I chip my dang tooth on the glass of straw So the entire episode I'm just sitting there like trying to like have a conversation and my mouth is just like killing me So was it like a big big chip? It's a now you can comply kind of see it. It's this tooth right here Just kind of chips in kind of took out a little bit of the bottom. So no good. I haven't gotten it anything done about it Because it's gotten kind of less sensitive, but I'll get it. Look bad. I suppose One lot awesome MCP server though Forgot started two things meet up and spooky stories submission. We need you for both October 27 we are going to be doing a meetup in San Francisco at bear bottle beer garden in Salesforce park We're in town forget up universe. You don't have to actually be going to get a universe to go to this It's open to anybody We're gonna have a bunch of drinks a bunch of swag really good time. So if you're anywhere in the California area Or somewhere in California or anywhere you want to fly down come on out October 27th It's gonna be a who go to syntax.fm forward slash meetup and you can grab a ticket They are free, but you do have to reserve one because space is limited second Halloween's coming up. We need your spooky stories. This is an episode. We do every single year where we read off The most terrifying spooky stories about web development general So have you taken down prod by accident? Have you published something that you shouldn't have? Have you let an SSL certificate expire? Have you dropped a database by accident deleted all the records? We want to hear your most stick your head in the ground stories for Halloween These are always awful to hear But you learn a lot so please go to syntax.fm forward slash spooky and submit your story We keep absolutely everything anonymous. So tell us your work So Let's talk about like what the hell these things are really quick and just so you know context if you've never used these things before So I've crumbed dev tools you probably know what those are right those early dev tools where you can pop it open You have your console you have your network access or several tabs in there actually like maybe we haven't done that episode in a while is like tips for the dev tools I think there's some nuggets in there everybody uses a console and that's about it And there's there's so much more in there MCP server is a way to provide AI additional tools so like A an AI model on its own you can you can talk back and forth to it or you can give it content We'll give you content back But when you need it to do things That it can't do like like visit a website or Like I built a MCP server that fetched the latest currencies, you know like just just different tools like a different tool I've made is the ability just to do math right Surprisingly, yeah, it's not not great at math and when you use chat GPT They're using all of these tools behind the scenes you might not necessarily know it But it's not simply just this the single model that that knows everything so MCP servers are super useful and being able to use them when when debugging and build websites is is extremely useful And I'm really glad to see that chrome has now rolled out a MCP server that will allow your AI tool to Visit websites click around look in the console look at your network Run tests screenshot grab the HTML all of that good stuff for you and it can be very helpful for a number reason we'll talk about that But yeah, MCP servers not just Not just for your code editor writes going yeah, there's a lot of tools there and I think when at first I was like okay, it's the dev tools MCP That gives us access to the dev tools, but it's it's more than that. It is fully automating the browser And I initially when I thought about this I did think about how many little workflows that I'm automating right now We're doing with playwright or maybe even the agent itself is is just like trying to fire up the dev server and visit the site How much more of that you could get finally tuned in a way but also develop really nice feedback loops of Fixing issues potentially or examining things that are actually rendered on the page getting access to that massive set of tools At least most of them that are existing the the the crumb dev tools this got me very excited and I think more and more lately As I use a lot of these agentic flows the the more I do this I find MCP servers to be man they are just I'm really excited by MCP and and I was at I was at a Microsoft's campus and Kent kent kentsy dots was there and he's like so Up on MCP and he was just chatting about it the whole time and it's gotten me into such a position where I'm like really Feeling the future of MCP and like seeing the big picture here about why these things matter so the fact that Soon after those conversations were taking place the chrome dev team releases this and it's like yes Okay, we have another really great MCP tool that we can take advantage of I see a lot of possibilities and then when you link these tools up like there's a Figma MCP server You could essentially take a design You could take it from Figma you could bring it into code you could load it up and you could verify it You could take screenshots you could compare the screenshots There's so much potential where you when you're combining these tools. Yeah, that's the idea at least right Whether that is doable yet I certainly think that we will be able to do that at some point which is kind of exciting Yeah, no very exciting. Yeah, but before we get too deep west Let me do take a moment to talk about a century before we yeah Quick little ad break here century is amazing and century has a great MCP server But centuries AI tools other than that a really great. I had a really awful bug in an app lately And I I stuck sear on it which is their AI tool that kind of gets through the garbage and finds the root cause of issues And man this was like not like I read the logs I read the century errors I read everything and I could not find it and I clicked the sear button and was like Hey, did you look at this ENV variable make sure it's set and I'm like yeah, of course it's set see your things And I went and it was a typo and the ENV definition. It was just a typo. Oh, and sear found it and I don't know how it found it. It was magic to me. So yeah Yeah, wild stuff. So thank you Sentry so check it out at century.io forward slash syntax. I don't get two months for free These are serious tools and man really loving them So the Chrome Dev Tools MCP server it it shares a lot of overlap with the like puppeteer MCP server meaning that like it what it does is when when you when it needs to visit a website it will Fire up an instance of Chrome It actually fires up a a new instance it won't connect to your existing like you just have your regular chrome open up and and everything and And there's a couple of reasons for that like the the technical reason behind it is that You need to have remote debugging running on a Chrome instance in order for Debugging to to be able to communicate back and forth with it So that's the one technical reason and probably the other reason because immediately I was like, well, I can't let's just connect to my I have my my regular thing I have all my depth tools open. I have all my extensions, you know I got all my stuff I got all my stuff here just connect to that one Don't make another one and I still hope that they will figure out some way to do that And I know that I can fire up my own remote debugging but If the reason behind is is security because like you probably shouldn't give a rogue AI agent which has other mcp tools hooked up to it as well, which could be Also malicious, you know, there's nothing from stopping another mcp server. Yeah from trying to use this one Visiting your bank account and then sending all your money to somebody else. So the certainly Yeah security issue there. So that's why it fires up a brand new instance of chrome that you have So getting mcp server setup is you go into Wherever you configure your your mcp server. So whether that's your chat chbt or cloud chat or whether that's your Your VS code or your cursor or whether that's You're simply writing a script with like the open AI SDK and you simply want to provide a list of mcp servers. You just give it this npx command and it will fire up In instance of that and it has it gives you access to all of the tools in VS code it actually is kind of nice because it gives you a listing of what all the different tools are So yeah, you can see that the VS code mcp stuff is gotten level up Yeah Like list console messages hover Handle dialogue getting network request right. I think the puppeteer one has a bit more of tools But I've I've been actually able to use most of these things which is like navigate to a page Find it input enter in the thing type some text hit okay wait for 10 seconds look for a thing on the page so you can You can programmatically control your website with most of these simply just by asking in the chat Yeah, I'm excited for that you in like you said earlier off the jump like beyond coding You could automate some real world stuff with these things right more than just yeah, you connect I Yeah, my brain initially goes to I can use this to debug. I can use this to performance track. I can use this to you know work on the web but like You can also connect your mcp server and you can say you know let's go to scotsolensky.com and Grab the first blog post there and use that blog post to Create a demo. I mean, I guess that's coding too. You could have it automate things within the browser now I'm currently using Comment to do some of that right and I think that world is is still opening up for a lot of people like Absolutely automating using the browser With these tools. Yeah, so here's an example. I just said visit dominoes pizza. I spelled it wrong And show me the sizes of pizzas that they sell so it fired up a new instance took a snapshot of dominoes calm Clicked on some pages. It's clicking around it's navigating around taking more snapshot It's basically just looking for what it wants it went to About dominoes pizza for its size pizza sizes like it just imagines so obviously it's not perfect There we go. I ended up finding pizza size offered medium or just maybe maybe a good example of where it's it's not perfect Because obviously they sell More of those but that's just a perfect example of how you can use it to programmatically visit sites and I think that also West also you could you could have web search in any of these tools do the web searching for you Yeah, retrieve that URL the exact URL and then pass that along to The chrome dev tools mcp server to do that instead of having Like the AI try to just guess Yeah, yeah exactly try to figure it out. I also asked it to You Visit my own personal website and tell me how many hot tips were there and It first went to the the the first page and then It told me that there was 433 because it found it on the pagination and then I said find the 150 tooth Uh hot tip and it just imagined the URL structure so I had to tell it hey Look at the look at the anchor links, you know hey look at the You just imagine what the pagination URL was right so it's just one tool out of many I think you have to Uh do a lot more prompting and writing writing uh instructions for it to get it to work really well Yeah, yeah, just another tool one big thing I've been interested in this is is one of them was like being able to programmatically visit websites and Descraping and whatnot, but the other one was simply just getting access to the console errors and and pushing that back into The chat because that's a big one for me where if I'm running the terminal within My editor the terminal like if you have a server running those those errors are pretty good. It's not perfect I'm still still frustrated at the like firing up a new server and getting the errors back from the terminal into your chat um But I have not found a great way to To do that with with client side errors, right? So there's kind of a couple ways you can go about this right if you want your console dot logs To show up and be accessible to your chat especially when you have like syntax errors and and and things that are thrown There's a couple options right so in in vs code you can Say open link and then I have a v server running on port 51 73 But getting this like debugues you can see this is the actual browser debug console Getting this information into the chat Like I've asked it. I must be missing something here, but like I don't think that the chat has Context into this debug console right and then you check the tools The there's like a little tools drop down or something yeah yeah right here yeah Edit fetch extensions Problems right like it can it can access the problems tab interesting. Where's the debug console? Yeah, but I don't see anything where it's like Has actually the the debug console which is frustrating so like usually I just have to copy paste it into here But like wouldn't it be better for it to just Know what errors were happening in my console? That would be really nice so the MCP server Will have the ability to do it right so if I stop this year and I'll say visit local host 51 73 and see what the console errors are So now it's running the MCP server and then it ran the tool list console messages and then it found Two errors the fab icon is missing and then it also found the unexpected token So that was great that was that was totally connected where I said visit this the website and figure out what's going on in this case Only thing it didn't do is fix it Which I guess I didn't ask it to do that. So I'll just say go ahead and fix it and then it should be able to apply that In my index hmail there we go beautiful Yeah, um the other sorry one more haters are gonna say that you could have fixed that yourself. I Impossible I needed to Boyle the ocean in order to find that missing semi-cooling Lasting is that chrome itself has like AI insights built right into dev tools So if you have a console error and you turn on the AI insights in chrome it will actually Suggest you how to how to fix it now. It's it's kind of like a weird world because How do you turn those on sorry? Yeah, let me bring it in here. So this is my like regular chrome here. There we go So I brought back this this actual error here and Unexpect token and then there's a understand this error you can I don't have that I haven't been using so it's somewhere in your settings Okay, you can turn it on here. We go turn on console insights to receive AI assistance. Okay. Well some reason it turned itself off So here we go. Yeah, you go to settings AI innovations. Turn that sucker on Okay, I don't not have this in comet browser. So yes, so I was using comet browser. No thanks Yeah, I I've been using it for like over a year now. So I kind of missed it and then here we go It that makes sense. It's not part of chrome here. It's part of chrome. Exactly. Yeah, it's yeah the the browsers themselves I think Firefox is also getting something similar to this as well And I wouldn't be surprised but my my question here is is like do we need to bring all of these at all of the dev tools to the editor Yeah, or yeah, or should the chrome itself just be the the editor right like it it knows about all of my files It knows about everything and knows about all the requests I actually asked the folks at chrome. I had a call with them the other day. I was like Like at what point are you just trying to bring everything out of chrome via mcp servers into Your your editor and at what point would it make more sense to just make chrome itself the editor right like they tried that years ago with the like local mapping and like Save me ever never cut on. I don't think it will ever get on you're essentially just rebuilding Vs code at that point. Yeah, but I thought that was kind of interesting Yeah, it is interesting. It is one of those things that comes up all the time Let's talk about what can the chrome mcp server do other than visit things and get your console right? Analyze performance and make changes based on that That's probably the biggest one is this site feels slow or What's my largest contentful paint? You know all of those web dev metrics You can ask it to look at those stats and figure out what is actually causing it So I asked the chrome mcp server can you visit syntax at fm and list all external fetch xhr requests that are made within the first 10 seconds So went ahead and found all that and it one kind of interesting thing I didn't even know we were doing this but it was hosting We're hosting our fonts on your domain name to Lynn dot ski. Yeah So yes, that's something I didn't know and I also asked it like What the biggest um downloads were and it went ahead and figured that out. I said is there any Bundles on my personal website that were too large that could be possibly slowing the website down And I feel like it did a pretty good job at that Whereas like obviously I can just scan that really quickly and I know but for people who don't necessarily know What is too large, you know what are for possible performance problems It's nice to build it just type it in the box and get that info Yeah, it's also nice to be able to take a screenshot from this because again you could have a workflow where you have a design You take a screenshot You compare the design with the screenshot whether that the design is potentially coming from like a fig my mcp And be able to verify you know what it's off what's what's not right because I do find that AI struggles with UI stuff pretty consistently And so being able to have those tools are really nice But also you could even take a screenshot so that way you could know what the AI is even seeing when it's doing some of these tasks like There's nothing worse than something Failing and you're not exactly sure exactly what it what's going on the amount of times that I've said It's just a white screen. Yes, you just put black text on black tech on black background Is is huge which it's another point that is like the accessibility tools are not available in this mcp server And I think that would really help but yeah The amount of time to have to just simply screenshot something and put it into the chat and then it goes ah I see So yeah, the screenshot tool is super helpful Still writing files with chats is seems to be a big problem In this case, I had to put it in a temp directory and then ask me to run a move command to move the file from the temp directory to my My local file system. Mm-hmm. Another really great opportunity here is to set up a feedback loop of Performance fixes. There's a ton of stuff inside of chrome developer tools from last Contentful paint last contentful paint man. We did a large so don't largest man. I'm so bad with words and acronyms Largest contentful paint. There's a whole bunch of these tools and they're available to these mcp servers to be able to go off Find the issues and then potentially take that information back pipe it back in and fix the problem Which is just this nice loop that you can get of performance fix performance fix Consolog error fix, you know a nice back and forth there There we go. I just ran out on syntax.fm and it came back with look at all the raw data for the Performance stats on syntax.fm and now it's gonna go ahead and lcp 744 this is a good lcp score according to core web vitals good lcp breakdown Yeah, that's another issue of another opportunity is give me plain English about these things right like run perform and then actually just tell me explain like a I'm five What is going on with the loading in this site? So this is obviously Chrome only but the question is is like not everybody is simply using this on a desktop right if you are using it as part of a A part of a script or you're running like cloud code on a server or something like that Then you need to be able to give it access to a chrome instance if it is unable to spin one up itself And you can you can mostly run like puppeteer headless on most on most of these servers. I've done it many times But if you have a chrome instance that's simply just running like you could have a Mac mini in your office You could run it and expose the dev tools ip address to the internet And then you can give it that actual URL and then anytime that mcp Server needs to use a browser then it will simply just it'll call out to that external chrome instance You could use tail scale or anything like that. I run a mac mini right there that I do a lot of remote stuff on so yeah Tail scale cloudflare tunnels all that good stuff Might be a good option. Although you have to worry about like You're just opening up a browser to the internet so you make sure you put some authentication or Stop ip white list something like that on there. Yeah, I do think that you can use this with Edge So when you start up at Microsoft Edge You're a bit you're one of the flags you can run it is the remote port and it will give you a port and I'll start up a a dev tools Remote server that you can remotely connect to So I believe with the flags that you pass to the mcp.json You can pass a there's they have this thing called connect url in the docs that is simply just mentioned And there's no examples. It's not even part of the docs. It's just in like one of the little blurbs So I'm pretty sure you can use that to connect to a browser that is Not chrome. So if you're running like a chromium instance or I'm assuming an edge I don't know that you necessarily would want to Because I don't see the benefit to it right now if you were to use a different one It's not like it's going to be using Your logged in state of your Microsoft edge instance It will still fire up a brand new instance of chromium you would have to manually log in to all of those things There are there's this thing called browser dash use Which if you're trying to like scrape websites and Pretend that you're a human that seems to be what most people are using in this space. It's Like kind of a step forward past Puppeteer and they also have hosted versions as well if you need just need a quick browser that's Running in the cloud you can pay them for that So limitations of this thing like what you can't you do west mentioned already once that it doesn't have access to the accessibility issues You know there's tools out there that you can run on your code base that will check for accessibility markers and stuff like that But having that in the browser would be super nice and super handy Granted you might be able to do some of that even I know you can't do all these things But at least like color checking and stuff you might be able to do with the screenshots But it does feel like it would be nice to just have that right baked in there Totally and you can run like lighthouse from the CLI to do those types of things But since it is part of the dev tools I would like access to that via the mcp server as well And I also like I asked it hey check for accessibility issues And all it did was just it ran like 40 lines of JavaScript programmatically on the website and just check for like Aria labels and like text on all of them It didn't do a great job that like something like the axe suite or something would do So I would like a little bit better accessibility tools built into this and I kind of bet that that's that's coming at some point And then there's direct access with all the CSS tooling as well I asked it like you know when you open up your dev tools and you inspect element on like a h1 tag It'd be nice to know What color is it and you can get all of these things with like it get computed style And that's what it actually is doing when you ask it questions But full access to the full CSS suite you can see what CSS variables are You can use see which line of code things were written on I think that would be Really nice to have full access and also like color nice color issues, you know Yeah, what's a good color for this changes color in dark mode loop through all of my paragraph tags and make sure there's no Nothing there it kind of gets more into the accessibility side of things but it for this to work AI would have to actually understand CSS which we all know Does not it has no clue is a purple gradient yeah in CSS. So that's all we got an absolute position everything Yeah, so that is the chrome mcp server big fan of that This is really exciting. I think these are probably early days for this type of thing And I bet that more of these tools will start to show up over time But certainly check it out throw it in your your editor's rotating your chat app Even if you just like turn it off. I don't like having all my mcp servers turned on all the time Because I feel like it just clutteres the Contacts so I'll just turn them on project by project as they need them Rather than having them turn on for absolutely everything with the exception of like maybe Contacts seven. Yeah, yeah, context seven for show and I did want to say before we get out of here was while we were I was checking out the the new spotlight tools that century released and this is not an ad read But we were talking a little bit about the like the front end logging and connecting all the things together and the spotlight by century has an mcp now That I think would be very good for this because you're still getting like centuries Logging you're getting it locally and now you're getting an mcp to be able to connect to that So I this is like hot off the press so I haven't gotten to use it yet by the time you're hearing this I'll have this deeply embedded into my project, but I'm I'm stoked on this because like I said the century Debugging tools have been very good with the AI because they have so much data and they understand how to use that data. So Contact baby give this a try for show. Yeah. All right. Thanks everybody for tuning in and we will catch you in the next one Peace",
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 9.040000000000001,
+      "text": " Welcome to syntax today. We have a show on Chrome's new dev tools MCP service is actually kind of nifty"
+    },
+    {
+      "start": 9.68,
+      "end": 16.56,
+      "text": " As a way to both help you debug as well as as figure out what's going on your website programmatically controls"
+    },
+    {
+      "start": 17.28,
+      "end": 21.56,
+      "text": " Figure out network issues that are going on. There's a whole bunch of use cases"
+    },
+    {
+      "start": 21.56,
+      "end": 28.560000000000002,
+      "text": " So we're gonna talk about that today. My name is West Boston a developer from Canada with me as always is mr. Scott to Linsky"
+    },
+    {
+      "start": 28.56,
+      "end": 30.799999999999997,
+      "text": " How you doing Scott? Oh man, I'm doing much better"
+    },
+    {
+      "start": 31.599999999999998,
+      "end": 37.76,
+      "text": " last week at the start of the ricky episode when I recorded within like the first couple of moments"
+    },
+    {
+      "start": 37.76,
+      "end": 42.879999999999995,
+      "text": " And it might have been before we hit record. I chip my dang tooth on the glass of straw"
+    },
+    {
+      "start": 43.44,
+      "end": 50.16,
+      "text": " So the entire episode I'm just sitting there like trying to like have a conversation and my mouth is just like killing me"
+    },
+    {
+      "start": 50.96,
+      "end": 57.2,
+      "text": " So was it like a big big chip? It's a now you can comply kind of see it. It's this tooth right here"
+    },
+    {
+      "start": 57.2,
+      "end": 64.4,
+      "text": " Just kind of chips in kind of took out a little bit of the bottom. So no good. I haven't gotten it anything done about it"
+    },
+    {
+      "start": 64.4,
+      "end": 69.2,
+      "text": " Because it's gotten kind of less sensitive, but I'll get it. Look bad. I suppose"
+    },
+    {
+      "start": 70.64,
+      "end": 72.64,
+      "text": " One lot awesome"
+    },
+    {
+      "start": 73.44,
+      "end": 75.44,
+      "text": " MCP server though"
+    },
+    {
+      "start": 75.68,
+      "end": 80.80000000000001,
+      "text": " Forgot started two things meet up and spooky stories submission. We need you for both"
+    },
+    {
+      "start": 81.2,
+      "end": 89.6,
+      "text": " October 27 we are going to be doing a meetup in San Francisco at bear bottle beer garden in Salesforce park"
+    },
+    {
+      "start": 89.6,
+      "end": 93.36,
+      "text": " We're in town forget up universe. You don't have to actually be going to get a universe to go to this"
+    },
+    {
+      "start": 93.36,
+      "end": 94.72,
+      "text": " It's open to anybody"
+    },
+    {
+      "start": 94.72,
+      "end": 100.47999999999999,
+      "text": " We're gonna have a bunch of drinks a bunch of swag really good time. So if you're anywhere in the California area"
+    },
+    {
+      "start": 101.36,
+      "end": 106.8,
+      "text": " Or somewhere in California or anywhere you want to fly down come on out October 27th"
+    },
+    {
+      "start": 106.88,
+      "end": 111.44,
+      "text": " It's gonna be a who go to syntax.fm forward slash meetup and you can grab a ticket"
+    },
+    {
+      "start": 111.84,
+      "end": 116.16,
+      "text": " They are free, but you do have to reserve one because space is limited second"
+    },
+    {
+      "start": 116.88,
+      "end": 122.88,
+      "text": " Halloween's coming up. We need your spooky stories. This is an episode. We do every single year where we read off"
+    },
+    {
+      "start": 123.28,
+      "end": 127.28,
+      "text": " The most terrifying spooky stories about web development general"
+    },
+    {
+      "start": 127.28,
+      "end": 134.88,
+      "text": " So have you taken down prod by accident? Have you published something that you shouldn't have? Have you let an SSL certificate expire?"
+    },
+    {
+      "start": 135.44,
+      "end": 139.35999999999999,
+      "text": " Have you dropped a database by accident deleted all the records?"
+    },
+    {
+      "start": 139.44,
+      "end": 143.68,
+      "text": " We want to hear your most stick your head in the ground stories for Halloween"
+    },
+    {
+      "start": 143.68,
+      "end": 145.68,
+      "text": " These are always awful to hear"
+    },
+    {
+      "start": 145.68,
+      "end": 150.88,
+      "text": " But you learn a lot so please go to syntax.fm forward slash spooky and submit your story"
+    },
+    {
+      "start": 150.96,
+      "end": 154.32,
+      "text": " We keep absolutely everything anonymous. So tell us your work"
+    },
+    {
+      "start": 155.04,
+      "end": 157.04,
+      "text": " So"
+    },
+    {
+      "start": 163.04,
+      "end": 167.68,
+      "text": " Let's talk about like what the hell these things are really quick and just so you know context if you've never used these things before"
+    },
+    {
+      "start": 167.68,
+      "end": 172.79999999999998,
+      "text": " So I've crumbed dev tools you probably know what those are right those early dev tools where you can pop it open"
+    },
+    {
+      "start": 172.79999999999998,
+      "end": 175.68,
+      "text": " You have your console you have your network access or several"
+    },
+    {
+      "start": 176.56,
+      "end": 182.16,
+      "text": " tabs in there actually like maybe we haven't done that episode in a while is like tips for the dev tools"
+    },
+    {
+      "start": 182.16,
+      "end": 186.64,
+      "text": " I think there's some nuggets in there everybody uses a console and that's about it"
+    },
+    {
+      "start": 187.2,
+      "end": 189.2,
+      "text": " And there's there's so much more in there"
+    },
+    {
+      "start": 189.2,
+      "end": 195.68,
+      "text": " MCP server is a way to provide AI additional tools so like"
+    },
+    {
+      "start": 196.64,
+      "end": 202.0,
+      "text": " A an AI model on its own you can you can talk back and forth to it or you can give it content"
+    },
+    {
+      "start": 202.0,
+      "end": 203.68,
+      "text": " We'll give you content back"
+    },
+    {
+      "start": 203.68,
+      "end": 205.68,
+      "text": " But when you need it to do things"
+    },
+    {
+      "start": 206.56,
+      "end": 209.84,
+      "text": " That it can't do like like visit a website or"
+    },
+    {
+      "start": 210.4,
+      "end": 217.84,
+      "text": " Like I built a MCP server that fetched the latest currencies, you know like just just different tools like a different tool"
+    },
+    {
+      "start": 217.84,
+      "end": 220.4,
+      "text": " I've made is the ability just to do math right"
+    },
+    {
+      "start": 221.6,
+      "end": 225.92000000000002,
+      "text": " Surprisingly, yeah, it's not not great at math and when you use chat GPT"
+    },
+    {
+      "start": 226.64000000000001,
+      "end": 230.24,
+      "text": " They're using all of these tools behind the scenes you might not necessarily know it"
+    },
+    {
+      "start": 230.24,
+      "end": 234.88,
+      "text": " But it's not simply just this the single model that that knows everything so"
+    },
+    {
+      "start": 235.84,
+      "end": 244.56,
+      "text": " MCP servers are super useful and being able to use them when when debugging and build websites is is extremely useful"
+    },
+    {
+      "start": 244.56,
+      "end": 250.24,
+      "text": " And I'm really glad to see that chrome has now rolled out a MCP server that will allow your"
+    },
+    {
+      "start": 251.28,
+      "end": 253.28,
+      "text": " AI tool to"
+    },
+    {
+      "start": 254.16,
+      "end": 257.84,
+      "text": " Visit websites click around look in the console look at your network"
+    },
+    {
+      "start": 258.71999999999997,
+      "end": 260.0,
+      "text": " Run tests"
+    },
+    {
+      "start": 260.0,
+      "end": 267.2,
+      "text": " screenshot grab the HTML all of that good stuff for you and it can be very helpful for a number reason we'll talk about that"
+    },
+    {
+      "start": 267.2,
+      "end": 269.35999999999996,
+      "text": " But yeah, MCP servers not just"
+    },
+    {
+      "start": 270.0,
+      "end": 275.67999999999995,
+      "text": " Not just for your code editor writes going yeah, there's a lot of tools there and I think when at first"
+    },
+    {
+      "start": 275.67999999999995,
+      "end": 277.91999999999996,
+      "text": " I was like okay, it's the dev tools MCP"
+    },
+    {
+      "start": 278.47999999999996,
+      "end": 283.52,
+      "text": " That gives us access to the dev tools, but it's it's more than that. It is fully automating the browser"
+    },
+    {
+      "start": 283.84,
+      "end": 289.59999999999997,
+      "text": " And I initially when I thought about this I did think about how many little workflows that I'm automating right now"
+    },
+    {
+      "start": 289.59999999999997,
+      "end": 296.71999999999997,
+      "text": " We're doing with playwright or maybe even the agent itself is is just like trying to fire up the dev server and visit the site"
+    },
+    {
+      "start": 296.79999999999995,
+      "end": 299.91999999999996,
+      "text": " How much more of that you could get finally tuned in a way"
+    },
+    {
+      "start": 300.79999999999995,
+      "end": 303.35999999999996,
+      "text": " but also develop really nice feedback loops of"
+    },
+    {
+      "start": 304.64,
+      "end": 312.15999999999997,
+      "text": " Fixing issues potentially or examining things that are actually rendered on the page getting access to that massive set of tools"
+    },
+    {
+      "start": 312.88000000000005,
+      "end": 320.88000000000005,
+      "text": " At least most of them that are existing the the the crumb dev tools this got me very excited and I think more and more lately"
+    },
+    {
+      "start": 321.76000000000005,
+      "end": 327.04,
+      "text": " As I use a lot of these agentic flows the the more I do this I find"
+    },
+    {
+      "start": 327.68,
+      "end": 332.08000000000004,
+      "text": " MCP servers to be man they are just"
+    },
+    {
+      "start": 333.12,
+      "end": 341.84000000000003,
+      "text": " I'm really excited by MCP and and I was at I was at a Microsoft's campus and Kent kent kentsy dots was there and he's like so"
+    },
+    {
+      "start": 342.16,
+      "end": 349.20000000000005,
+      "text": " Up on MCP and he was just chatting about it the whole time and it's gotten me into such a position where I'm like really"
+    },
+    {
+      "start": 349.84000000000003,
+      "end": 356.8,
+      "text": " Feeling the future of MCP and like seeing the big picture here about why these things matter so the fact that"
+    },
+    {
+      "start": 357.68,
+      "end": 363.36,
+      "text": " Soon after those conversations were taking place the chrome dev team releases this and it's like yes"
+    },
+    {
+      "start": 363.44000000000005,
+      "end": 367.28000000000003,
+      "text": " Okay, we have another really great MCP tool that we can take advantage of"
+    },
+    {
+      "start": 368.23999999999995,
+      "end": 374.23999999999995,
+      "text": " I see a lot of possibilities and then when you link these tools up like there's a Figma MCP server"
+    },
+    {
+      "start": 375.2,
+      "end": 377.67999999999995,
+      "text": " You could essentially take a design"
+    },
+    {
+      "start": 378.96,
+      "end": 383.59999999999997,
+      "text": " You could take it from Figma you could bring it into code you could load it up and you could verify it"
+    },
+    {
+      "start": 383.67999999999995,
+      "end": 386.88,
+      "text": " You could take screenshots you could compare the screenshots"
+    },
+    {
+      "start": 387.52,
+      "end": 393.28,
+      "text": " There's so much potential where you when you're combining these tools. Yeah, that's the idea at least right"
+    },
+    {
+      "start": 394.15999999999997,
+      "end": 396.0,
+      "text": " Whether that is doable yet"
+    },
+    {
+      "start": 396.4,
+      "end": 400.64,
+      "text": " I certainly think that we will be able to do that at some point which is kind of exciting"
+    },
+    {
+      "start": 401.35999999999996,
+      "end": 405.11999999999995,
+      "text": " Yeah, no very exciting. Yeah, but before we get too deep west"
+    },
+    {
+      "start": 405.11999999999995,
+      "end": 408.64,
+      "text": " Let me do take a moment to talk about a century before we yeah"
+    },
+    {
+      "start": 409.44,
+      "end": 414.47999999999996,
+      "text": " Quick little ad break here century is amazing and century has a great MCP server"
+    },
+    {
+      "start": 414.96,
+      "end": 420.71999999999997,
+      "text": " But centuries AI tools other than that a really great. I had a really awful bug in an app lately"
+    },
+    {
+      "start": 420.8,
+      "end": 427.76000000000005,
+      "text": " And I I stuck sear on it which is their AI tool that kind of gets through the garbage and finds the root cause of issues"
+    },
+    {
+      "start": 428.24,
+      "end": 433.52000000000004,
+      "text": " And man this was like not like I read the logs I read the century errors"
+    },
+    {
+      "start": 433.52000000000004,
+      "end": 437.52000000000004,
+      "text": " I read everything and I could not find it and I clicked the sear button and was like"
+    },
+    {
+      "start": 438.24,
+      "end": 440.24,
+      "text": " Hey, did you look at this"
+    },
+    {
+      "start": 441.12,
+      "end": 445.52000000000004,
+      "text": " ENV variable make sure it's set and I'm like yeah, of course it's set see your things"
+    },
+    {
+      "start": 446.32,
+      "end": 452.47999999999996,
+      "text": " And I went and it was a typo and the ENV definition. It was just a typo. Oh, and"
+    },
+    {
+      "start": 453.44,
+      "end": 458.32,
+      "text": " sear found it and I don't know how it found it. It was magic to me. So yeah"
+    },
+    {
+      "start": 458.96,
+      "end": 460.96,
+      "text": " Yeah, wild stuff. So thank you"
+    },
+    {
+      "start": 460.96,
+      "end": 465.12,
+      "text": " Sentry so check it out at century.io forward slash syntax. I don't get two months for free"
+    },
+    {
+      "start": 465.2,
+      "end": 468.24,
+      "text": " These are serious tools and man really loving them"
+    },
+    {
+      "start": 468.88,
+      "end": 474.96,
+      "text": " So the Chrome Dev Tools MCP server it it shares a lot of overlap with the like puppeteer"
+    },
+    {
+      "start": 475.76,
+      "end": 481.68,
+      "text": " MCP server meaning that like it what it does is when when you when it needs to visit a website it will"
+    },
+    {
+      "start": 482.24,
+      "end": 484.47999999999996,
+      "text": " Fire up an instance of Chrome"
+    },
+    {
+      "start": 484.71999999999997,
+      "end": 491.91999999999996,
+      "text": " It actually fires up a a new instance it won't connect to your existing like you just have your regular chrome open up and and everything and"
+    },
+    {
+      "start": 492.24,
+      "end": 495.68,
+      "text": " And there's a couple of reasons for that like the the technical reason behind it is that"
+    },
+    {
+      "start": 496.32,
+      "end": 498.32,
+      "text": " You need to have remote debugging"
+    },
+    {
+      "start": 498.64,
+      "end": 501.03999999999996,
+      "text": " running on a Chrome instance"
+    },
+    {
+      "start": 501.91999999999996,
+      "end": 503.68,
+      "text": " in order for"
+    },
+    {
+      "start": 504.40000000000003,
+      "end": 507.36,
+      "text": " Debugging to to be able to communicate back and forth with it"
+    },
+    {
+      "start": 507.36,
+      "end": 510.96,
+      "text": " So that's the one technical reason and probably the other reason because immediately"
+    },
+    {
+      "start": 510.96,
+      "end": 514.64,
+      "text": " I was like, well, I can't let's just connect to my I have my my regular thing"
+    },
+    {
+      "start": 514.64,
+      "end": 516.96,
+      "text": " I have all my depth tools open. I have all my extensions, you know"
+    },
+    {
+      "start": 517.84,
+      "end": 519.36,
+      "text": " I got all my stuff"
+    },
+    {
+      "start": 519.36,
+      "end": 521.52,
+      "text": " I got all my stuff here just connect to that one"
+    },
+    {
+      "start": 521.52,
+      "end": 525.6800000000001,
+      "text": " Don't make another one and I still hope that they will figure out some way to do that"
+    },
+    {
+      "start": 525.76,
+      "end": 527.76,
+      "text": " And I know that I can fire up my own"
+    },
+    {
+      "start": 528.32,
+      "end": 530.32,
+      "text": " remote debugging but"
+    },
+    {
+      "start": 530.72,
+      "end": 537.6800000000001,
+      "text": " If the reason behind is is security because like you probably shouldn't give a rogue AI agent which has other"
+    },
+    {
+      "start": 538.0,
+      "end": 540.8000000000001,
+      "text": " mcp tools hooked up to it as well, which could be"
+    },
+    {
+      "start": 541.2800000000001,
+      "end": 547.6800000000001,
+      "text": " Also malicious, you know, there's nothing from stopping another mcp server. Yeah from trying to use this one"
+    },
+    {
+      "start": 548.1600000000001,
+      "end": 553.6,
+      "text": " Visiting your bank account and then sending all your money to somebody else. So the certainly"
+    },
+    {
+      "start": 554.8000000000001,
+      "end": 559.7600000000001,
+      "text": " Yeah security issue there. So that's why it fires up a brand new instance of chrome that you have"
+    },
+    {
+      "start": 561.2,
+      "end": 564.72,
+      "text": " So getting mcp server setup is you go into"
+    },
+    {
+      "start": 565.5200000000001,
+      "end": 571.7600000000001,
+      "text": " Wherever you configure your your mcp server. So whether that's your chat chbt or cloud chat or whether that's your"
+    },
+    {
+      "start": 573.36,
+      "end": 576.0,
+      "text": " Your VS code or your cursor or whether that's"
+    },
+    {
+      "start": 576.96,
+      "end": 580.88,
+      "text": " You're simply writing a script with like the open AI"
+    },
+    {
+      "start": 582.24,
+      "end": 590.0,
+      "text": " SDK and you simply want to provide a list of mcp servers. You just give it this npx command and it will fire up"
+    },
+    {
+      "start": 590.48,
+      "end": 594.32,
+      "text": " In instance of that and it has it gives you access to all of the tools in"
+    },
+    {
+      "start": 594.96,
+      "end": 600.0,
+      "text": " VS code it actually is kind of nice because it gives you a listing of what all the different tools are"
+    },
+    {
+      "start": 600.32,
+      "end": 603.2,
+      "text": " So yeah, you can see that the VS code mcp stuff is gotten"
+    },
+    {
+      "start": 603.84,
+      "end": 605.36,
+      "text": " level up"
+    },
+    {
+      "start": 605.36,
+      "end": 606.6400000000001,
+      "text": " Yeah"
+    },
+    {
+      "start": 606.6400000000001,
+      "end": 608.88,
+      "text": " Like list console messages hover"
+    },
+    {
+      "start": 608.88,
+      "end": 615.36,
+      "text": " Handle dialogue getting network request right. I think the puppeteer one has a bit more of tools"
+    },
+    {
+      "start": 615.44,
+      "end": 620.08,
+      "text": " But I've I've been actually able to use most of these things which is like navigate to a page"
+    },
+    {
+      "start": 620.48,
+      "end": 628.32,
+      "text": " Find it input enter in the thing type some text hit okay wait for 10 seconds look for a thing on the page so you can"
+    },
+    {
+      "start": 629.12,
+      "end": 634.32,
+      "text": " You can programmatically control your website with most of these simply just by asking in the chat"
+    },
+    {
+      "start": 635.36,
+      "end": 640.48,
+      "text": " Yeah, I'm excited for that you in like you said earlier off the jump like beyond"
+    },
+    {
+      "start": 641.5200000000001,
+      "end": 642.5600000000001,
+      "text": " coding"
+    },
+    {
+      "start": 642.5600000000001,
+      "end": 649.12,
+      "text": " You could automate some real world stuff with these things right more than just yeah, you connect"
+    },
+    {
+      "start": 649.6,
+      "end": 651.6,
+      "text": " I"
+    },
+    {
+      "start": 651.6,
+      "end": 660.4,
+      "text": " Yeah, my brain initially goes to I can use this to debug. I can use this to performance track. I can use this to you know work on the web but like"
+    },
+    {
+      "start": 661.76,
+      "end": 665.68,
+      "text": " You can also connect your mcp server and you can say you know"
+    },
+    {
+      "start": 667.2,
+      "end": 668.88,
+      "text": " let's go to"
+    },
+    {
+      "start": 668.88,
+      "end": 670.88,
+      "text": " scotsolensky.com and"
+    },
+    {
+      "start": 672.24,
+      "end": 674.24,
+      "text": " Grab the first blog post there and"
+    },
+    {
+      "start": 675.44,
+      "end": 677.44,
+      "text": " use that blog post to"
+    },
+    {
+      "start": 678.0,
+      "end": 683.48,
+      "text": " Create a demo. I mean, I guess that's coding too. You could have it automate things within the browser now"
+    },
+    {
+      "start": 683.48,
+      "end": 684.8800000000001,
+      "text": " I'm currently using"
+    },
+    {
+      "start": 684.8800000000001,
+      "end": 690.5200000000001,
+      "text": " Comment to do some of that right and I think that world is is still opening up for a lot of people like"
+    },
+    {
+      "start": 691.2800000000001,
+      "end": 693.84,
+      "text": " Absolutely automating using the browser"
+    },
+    {
+      "start": 694.8000000000001,
+      "end": 699.84,
+      "text": " With these tools. Yeah, so here's an example. I just said visit dominoes pizza. I spelled it wrong"
+    },
+    {
+      "start": 700.4000000000001,
+      "end": 704.4000000000001,
+      "text": " And show me the sizes of pizzas that they sell so it fired up a new instance"
+    },
+    {
+      "start": 705.2800000000001,
+      "end": 707.2800000000001,
+      "text": " took a snapshot of dominoes"
+    },
+    {
+      "start": 707.5200000000001,
+      "end": 708.8800000000001,
+      "text": " calm"
+    },
+    {
+      "start": 708.8800000000001,
+      "end": 713.2800000000001,
+      "text": " Clicked on some pages. It's clicking around it's navigating around taking more snapshot"
+    },
+    {
+      "start": 713.2800000000001,
+      "end": 716.24,
+      "text": " It's basically just looking for what it wants it went to"
+    },
+    {
+      "start": 717.2800000000001,
+      "end": 722.8000000000001,
+      "text": " About dominoes pizza for its size pizza sizes like it just imagines so obviously it's not perfect"
+    },
+    {
+      "start": 723.12,
+      "end": 730.8000000000001,
+      "text": " There we go. I ended up finding pizza size offered medium or just maybe maybe a good example of where it's it's not perfect"
+    },
+    {
+      "start": 730.8000000000001,
+      "end": 732.8000000000001,
+      "text": " Because obviously they sell"
+    },
+    {
+      "start": 732.9599999999999,
+      "end": 739.28,
+      "text": " More of those but that's just a perfect example of how you can use it to programmatically visit sites and I think that also"
+    },
+    {
+      "start": 739.3599999999999,
+      "end": 744.9599999999999,
+      "text": " West also you could you could have web search in any of these tools do the web searching for you"
+    },
+    {
+      "start": 745.3599999999999,
+      "end": 750.16,
+      "text": " Yeah, retrieve that URL the exact URL and then pass that along to"
+    },
+    {
+      "start": 751.04,
+      "end": 754.3199999999999,
+      "text": " The chrome dev tools mcp server to do that instead of having"
+    },
+    {
+      "start": 755.12,
+      "end": 757.3599999999999,
+      "text": " Like the AI try to just guess"
+    },
+    {
+      "start": 758.0799999999999,
+      "end": 761.1999999999999,
+      "text": " Yeah, yeah exactly try to figure it out. I also asked it to"
+    },
+    {
+      "start": 761.36,
+      "end": 762.4000000000001,
+      "text": " You"
+    },
+    {
+      "start": 762.4000000000001,
+      "end": 766.72,
+      "text": " Visit my own personal website and tell me how many hot tips were there and"
+    },
+    {
+      "start": 767.5200000000001,
+      "end": 770.88,
+      "text": " It first went to the the the first page and then"
+    },
+    {
+      "start": 771.76,
+      "end": 777.2800000000001,
+      "text": " It told me that there was 433 because it found it on the pagination and then I said find the 150 tooth"
+    },
+    {
+      "start": 778.1600000000001,
+      "end": 782.72,
+      "text": " Uh hot tip and it just imagined the URL structure so I had to tell it hey"
+    },
+    {
+      "start": 783.6800000000001,
+      "end": 786.96,
+      "text": " Look at the look at the anchor links, you know hey look at the"
+    },
+    {
+      "start": 787.6,
+      "end": 794.1600000000001,
+      "text": " You just imagine what the pagination URL was right so it's just one tool out of many I think you have to"
+    },
+    {
+      "start": 794.72,
+      "end": 801.2800000000001,
+      "text": " Uh do a lot more prompting and writing writing uh instructions for it to get it to work really well"
+    },
+    {
+      "start": 801.9200000000001,
+      "end": 804.48,
+      "text": " Yeah, yeah, just another tool one big thing"
+    },
+    {
+      "start": 804.96,
+      "end": 810.48,
+      "text": " I've been interested in this is is one of them was like being able to programmatically visit websites and"
+    },
+    {
+      "start": 810.5600000000001,
+      "end": 819.6800000000001,
+      "text": " Descraping and whatnot, but the other one was simply just getting access to the console errors and and pushing that back into"
+    },
+    {
+      "start": 820.24,
+      "end": 825.12,
+      "text": " The chat because that's a big one for me where if I'm running the terminal within"
+    },
+    {
+      "start": 825.76,
+      "end": 833.36,
+      "text": " My editor the terminal like if you have a server running those those errors are pretty good. It's not perfect"
+    },
+    {
+      "start": 833.36,
+      "end": 835.44,
+      "text": " I'm still still frustrated at the like"
+    },
+    {
+      "start": 836.1600000000001,
+      "end": 841.7600000000001,
+      "text": " firing up a new server and getting the errors back from the terminal into your chat"
+    },
+    {
+      "start": 842.1600000000001,
+      "end": 843.12,
+      "text": " um"
+    },
+    {
+      "start": 843.12,
+      "end": 846.1600000000001,
+      "text": " But I have not found a great way to"
+    },
+    {
+      "start": 846.8800000000001,
+      "end": 849.9200000000001,
+      "text": " To do that with with client side errors, right?"
+    },
+    {
+      "start": 850.0,
+      "end": 854.72,
+      "text": " So there's kind of a couple ways you can go about this right if you want your console dot logs"
+    },
+    {
+      "start": 855.2,
+      "end": 863.12,
+      "text": " To show up and be accessible to your chat especially when you have like syntax errors and and and things that are thrown"
+    },
+    {
+      "start": 863.6,
+      "end": 866.64,
+      "text": " There's a couple options right so in in vs code you can"
+    },
+    {
+      "start": 867.36,
+      "end": 871.76,
+      "text": " Say open link and then I have a v server running on port 51 73"
+    },
+    {
+      "start": 872.32,
+      "end": 878.08,
+      "text": " But getting this like debugues you can see this is the actual browser debug console"
+    },
+    {
+      "start": 878.4,
+      "end": 880.72,
+      "text": " Getting this information into the chat"
+    },
+    {
+      "start": 881.44,
+      "end": 886.88,
+      "text": " Like I've asked it. I must be missing something here, but like I don't think that the chat has"
+    },
+    {
+      "start": 887.92,
+      "end": 891.36,
+      "text": " Context into this debug console right and then you check the tools"
+    },
+    {
+      "start": 891.84,
+      "end": 896.48,
+      "text": " The there's like a little tools drop down or something yeah yeah right here yeah"
+    },
+    {
+      "start": 897.36,
+      "end": 899.36,
+      "text": " Edit fetch extensions"
+    },
+    {
+      "start": 900.08,
+      "end": 908.32,
+      "text": " Problems right like it can it can access the problems tab interesting. Where's the debug console? Yeah, but I don't see anything where it's like"
+    },
+    {
+      "start": 908.5600000000001,
+      "end": 914.16,
+      "text": " Has actually the the debug console which is frustrating so like usually I just have to copy paste it into here"
+    },
+    {
+      "start": 914.48,
+      "end": 916.88,
+      "text": " But like wouldn't it be better for it to just"
+    },
+    {
+      "start": 917.52,
+      "end": 920.4,
+      "text": " Know what errors were happening in my console?"
+    },
+    {
+      "start": 921.12,
+      "end": 924.16,
+      "text": " That would be really nice so the MCP server"
+    },
+    {
+      "start": 924.9599999999999,
+      "end": 929.76,
+      "text": " Will have the ability to do it right so if I stop this year and I'll say"
+    },
+    {
+      "start": 930.8,
+      "end": 932.48,
+      "text": " visit"
+    },
+    {
+      "start": 932.48,
+      "end": 937.52,
+      "text": " local host 51 73 and see what the console errors are"
+    },
+    {
+      "start": 938.3199999999999,
+      "end": 946.16,
+      "text": " So now it's running the MCP server and then it ran the tool list console messages and then it found"
+    },
+    {
+      "start": 946.9599999999999,
+      "end": 953.36,
+      "text": " Two errors the fab icon is missing and then it also found the unexpected token"
+    },
+    {
+      "start": 953.8399999999999,
+      "end": 960.16,
+      "text": " So that was great that was that was totally connected where I said visit this the website and figure out what's going on in this case"
+    },
+    {
+      "start": 960.64,
+      "end": 962.64,
+      "text": " Only thing it didn't do is fix it"
+    },
+    {
+      "start": 963.12,
+      "end": 968.56,
+      "text": " Which I guess I didn't ask it to do that. So I'll just say go ahead and fix it and then it should be able to apply that"
+    },
+    {
+      "start": 969.68,
+      "end": 971.68,
+      "text": " In my index hmail there we go beautiful"
+    },
+    {
+      "start": 972.4,
+      "end": 978.4,
+      "text": " Yeah, um the other sorry one more haters are gonna say that you could have fixed that yourself. I"
+    },
+    {
+      "start": 979.1999999999999,
+      "end": 980.8,
+      "text": " Impossible I needed to"
+    },
+    {
+      "start": 981.5999999999999,
+      "end": 985.4399999999999,
+      "text": " Boyle the ocean in order to find that missing semi-cooling"
+    },
+    {
+      "start": 986.9599999999999,
+      "end": 993.76,
+      "text": " Lasting is that chrome itself has like AI insights built right into dev tools"
+    },
+    {
+      "start": 994.2399999999999,
+      "end": 1000.16,
+      "text": " So if you have a console error and you turn on the AI insights in chrome it will actually"
+    },
+    {
+      "start": 1001.12,
+      "end": 1006.24,
+      "text": " Suggest you how to how to fix it now. It's it's kind of like a weird world because"
+    },
+    {
+      "start": 1006.9599999999999,
+      "end": 1008.9599999999999,
+      "text": " How do you turn those on sorry?"
+    },
+    {
+      "start": 1009.4399999999999,
+      "end": 1014.0,
+      "text": " Yeah, let me bring it in here. So this is my like regular chrome here. There we go"
+    },
+    {
+      "start": 1014.0,
+      "end": 1016.64,
+      "text": " So I brought back this this actual error here and"
+    },
+    {
+      "start": 1017.68,
+      "end": 1026.0,
+      "text": " Unexpect token and then there's a understand this error you can I don't have that I haven't been using so it's somewhere in your settings"
+    },
+    {
+      "start": 1026.32,
+      "end": 1033.44,
+      "text": " Okay, you can turn it on here. We go turn on console insights to receive AI assistance. Okay. Well some reason it turned itself off"
+    },
+    {
+      "start": 1033.76,
+      "end": 1039.28,
+      "text": " So here we go. Yeah, you go to settings AI innovations. Turn that sucker on"
+    },
+    {
+      "start": 1041.12,
+      "end": 1048.8,
+      "text": " Okay, I don't not have this in comet browser. So yes, so I was using comet browser. No thanks"
+    },
+    {
+      "start": 1049.2,
+      "end": 1054.16,
+      "text": " Yeah, I I've been using it for like over a year now. So I kind of missed it and then here we go"
+    },
+    {
+      "start": 1054.24,
+      "end": 1060.96,
+      "text": " It that makes sense. It's not part of chrome here. It's part of chrome. Exactly. Yeah, it's yeah the the browsers themselves"
+    },
+    {
+      "start": 1060.96,
+      "end": 1063.8400000000001,
+      "text": " I think Firefox is also getting something similar to this as well"
+    },
+    {
+      "start": 1063.8400000000001,
+      "end": 1072.48,
+      "text": " And I wouldn't be surprised but my my question here is is like do we need to bring all of these at all of the dev tools to the editor"
+    },
+    {
+      "start": 1072.96,
+      "end": 1079.44,
+      "text": " Yeah, or yeah, or should the chrome itself just be the the editor right like it it knows about all of my files"
+    },
+    {
+      "start": 1079.44,
+      "end": 1082.0,
+      "text": " It knows about everything and knows about all the requests"
+    },
+    {
+      "start": 1082.72,
+      "end": 1086.16,
+      "text": " I actually asked the folks at chrome. I had a call with them the other day. I was like"
+    },
+    {
+      "start": 1087.04,
+      "end": 1092.24,
+      "text": " Like at what point are you just trying to bring everything out of chrome via mcp servers into"
+    },
+    {
+      "start": 1092.96,
+      "end": 1100.4,
+      "text": " Your your editor and at what point would it make more sense to just make chrome itself the editor right like they tried that years ago with the like"
+    },
+    {
+      "start": 1100.88,
+      "end": 1102.88,
+      "text": " local mapping and like"
+    },
+    {
+      "start": 1103.28,
+      "end": 1108.88,
+      "text": " Save me ever never cut on. I don't think it will ever get on you're essentially just rebuilding"
+    },
+    {
+      "start": 1109.1200000000001,
+      "end": 1113.0400000000002,
+      "text": " Vs code at that point. Yeah, but I thought that was kind of interesting"
+    },
+    {
+      "start": 1113.92,
+      "end": 1117.5200000000002,
+      "text": " Yeah, it is interesting. It is one of those things that comes up all the time"
+    },
+    {
+      "start": 1117.92,
+      "end": 1123.6000000000001,
+      "text": " Let's talk about what can the chrome mcp server do other than visit things and get your console right?"
+    },
+    {
+      "start": 1123.92,
+      "end": 1126.5600000000002,
+      "text": " Analyze performance and make changes based on that"
+    },
+    {
+      "start": 1126.5600000000002,
+      "end": 1130.24,
+      "text": " That's probably the biggest one is this site feels slow or"
+    },
+    {
+      "start": 1130.96,
+      "end": 1135.2800000000002,
+      "text": " What's my largest contentful paint? You know all of those web dev metrics"
+    },
+    {
+      "start": 1135.6,
+      "end": 1140.3999999999999,
+      "text": " You can ask it to look at those stats and figure out what is actually causing it"
+    },
+    {
+      "start": 1140.3999999999999,
+      "end": 1148.3999999999999,
+      "text": " So I asked the chrome mcp server can you visit syntax at fm and list all external fetch xhr requests that are made within the first 10 seconds"
+    },
+    {
+      "start": 1148.8799999999999,
+      "end": 1152.6399999999999,
+      "text": " So went ahead and found all that and it one kind of interesting thing"
+    },
+    {
+      "start": 1152.6399999999999,
+      "end": 1155.68,
+      "text": " I didn't even know we were doing this but it was hosting"
+    },
+    {
+      "start": 1156.32,
+      "end": 1161.68,
+      "text": " We're hosting our fonts on your domain name to Lynn dot ski. Yeah"
+    },
+    {
+      "start": 1162.4,
+      "end": 1165.8400000000001,
+      "text": " So yes, that's something I didn't know and I also asked it like"
+    },
+    {
+      "start": 1167.44,
+      "end": 1173.28,
+      "text": " What the biggest um downloads were and it went ahead and figured that out. I said is there any"
+    },
+    {
+      "start": 1174.16,
+      "end": 1178.8,
+      "text": " Bundles on my personal website that were too large that could be possibly slowing the website down"
+    },
+    {
+      "start": 1178.8,
+      "end": 1181.52,
+      "text": " And I feel like it did a pretty good job at that"
+    },
+    {
+      "start": 1182.0,
+      "end": 1186.96,
+      "text": " Whereas like obviously I can just scan that really quickly and I know but for people who don't necessarily know"
+    },
+    {
+      "start": 1188.0,
+      "end": 1191.52,
+      "text": " What is too large, you know what are for possible performance problems"
+    },
+    {
+      "start": 1191.76,
+      "end": 1194.3200000000002,
+      "text": " It's nice to build it just type it in the box and get that info"
+    },
+    {
+      "start": 1194.88,
+      "end": 1200.5600000000002,
+      "text": " Yeah, it's also nice to be able to take a screenshot from this because again you could have a workflow where you have a design"
+    },
+    {
+      "start": 1201.04,
+      "end": 1202.64,
+      "text": " You take a screenshot"
+    },
+    {
+      "start": 1202.64,
+      "end": 1208.5600000000002,
+      "text": " You compare the design with the screenshot whether that the design is potentially coming from like a fig my mcp"
+    },
+    {
+      "start": 1208.96,
+      "end": 1216.5600000000002,
+      "text": " And be able to verify you know what it's off what's what's not right because I do find that AI struggles with UI stuff pretty consistently"
+    },
+    {
+      "start": 1217.04,
+      "end": 1220.0800000000002,
+      "text": " And so being able to have those tools are really nice"
+    },
+    {
+      "start": 1220.1599999999999,
+      "end": 1227.76,
+      "text": " But also you could even take a screenshot so that way you could know what the AI is even seeing when it's doing some of these tasks like"
+    },
+    {
+      "start": 1227.76,
+      "end": 1229.76,
+      "text": " There's nothing worse than something"
+    },
+    {
+      "start": 1229.76,
+      "end": 1235.4399999999998,
+      "text": " Failing and you're not exactly sure exactly what it what's going on the amount of times that I've said"
+    },
+    {
+      "start": 1235.6,
+      "end": 1241.28,
+      "text": " It's just a white screen. Yes, you just put black text on black tech on black background"
+    },
+    {
+      "start": 1242.08,
+      "end": 1248.3999999999999,
+      "text": " Is is huge which it's another point that is like the accessibility tools are not available in this mcp server"
+    },
+    {
+      "start": 1248.48,
+      "end": 1250.3200000000002,
+      "text": " And I think that would really help but yeah"
+    },
+    {
+      "start": 1251.0400000000002,
+      "end": 1256.88,
+      "text": " The amount of time to have to just simply screenshot something and put it into the chat and then it goes ah I see"
+    },
+    {
+      "start": 1257.76,
+      "end": 1260.8000000000002,
+      "text": " So yeah, the screenshot tool is super helpful"
+    },
+    {
+      "start": 1261.92,
+      "end": 1267.2,
+      "text": " Still writing files with chats is seems to be a big problem"
+    },
+    {
+      "start": 1267.76,
+      "end": 1274.64,
+      "text": " In this case, I had to put it in a temp directory and then ask me to run a move command to move the file from the temp directory to my"
+    },
+    {
+      "start": 1275.6000000000001,
+      "end": 1282.24,
+      "text": " My local file system. Mm-hmm. Another really great opportunity here is to set up a feedback loop of"
+    },
+    {
+      "start": 1282.96,
+      "end": 1287.92,
+      "text": " Performance fixes. There's a ton of stuff inside of chrome developer tools from last"
+    },
+    {
+      "start": 1289.0400000000002,
+      "end": 1296.3200000000002,
+      "text": " Contentful paint last contentful paint man. We did a large so don't largest man. I'm so bad with words and acronyms"
+    },
+    {
+      "start": 1296.64,
+      "end": 1303.44,
+      "text": " Largest contentful paint. There's a whole bunch of these tools and they're available to these mcp servers to be able to go off"
+    },
+    {
+      "start": 1304.0,
+      "end": 1310.4,
+      "text": " Find the issues and then potentially take that information back pipe it back in and fix the problem"
+    },
+    {
+      "start": 1310.72,
+      "end": 1317.44,
+      "text": " Which is just this nice loop that you can get of performance fix performance fix"
+    },
+    {
+      "start": 1318.24,
+      "end": 1321.68,
+      "text": " Consolog error fix, you know a nice back and forth there"
+    },
+    {
+      "start": 1322.16,
+      "end": 1328.16,
+      "text": " There we go. I just ran out on syntax.fm and it came back with look at all the raw data"
+    },
+    {
+      "start": 1328.96,
+      "end": 1330.3200000000002,
+      "text": " for the"
+    },
+    {
+      "start": 1330.32,
+      "end": 1334.08,
+      "text": " Performance stats on syntax.fm and now it's gonna go ahead and"
+    },
+    {
+      "start": 1335.28,
+      "end": 1340.56,
+      "text": " lcp 744 this is a good lcp score according to core web vitals good"
+    },
+    {
+      "start": 1341.04,
+      "end": 1342.24,
+      "text": " lcp breakdown"
+    },
+    {
+      "start": 1342.3999999999999,
+      "end": 1349.6799999999998,
+      "text": " Yeah, that's another issue of another opportunity is give me plain English about these things right like run perform and then actually just tell me explain like a"
+    },
+    {
+      "start": 1350.0,
+      "end": 1351.36,
+      "text": " I'm five"
+    },
+    {
+      "start": 1351.36,
+      "end": 1354.72,
+      "text": " What is going on with the loading in this site? So this is obviously"
+    },
+    {
+      "start": 1355.28,
+      "end": 1362.88,
+      "text": " Chrome only but the question is is like not everybody is simply using this on a desktop right if you are using it as part of a"
+    },
+    {
+      "start": 1363.76,
+      "end": 1367.84,
+      "text": " A part of a script or you're running like cloud code on a server or something like that"
+    },
+    {
+      "start": 1368.56,
+      "end": 1374.48,
+      "text": " Then you need to be able to give it access to a chrome instance if it is unable to spin one up itself"
+    },
+    {
+      "start": 1374.56,
+      "end": 1382.0,
+      "text": " And you can you can mostly run like puppeteer headless on most on most of these servers. I've done it many times"
+    },
+    {
+      "start": 1382.8,
+      "end": 1387.92,
+      "text": " But if you have a chrome instance that's simply just running like you could have a Mac mini in your office"
+    },
+    {
+      "start": 1388.88,
+      "end": 1396.24,
+      "text": " You could run it and expose the dev tools ip address to the internet"
+    },
+    {
+      "start": 1397.12,
+      "end": 1401.6,
+      "text": " And then you can give it that actual URL and then anytime that mcp"
+    },
+    {
+      "start": 1402.32,
+      "end": 1408.56,
+      "text": " Server needs to use a browser then it will simply just it'll call out to that external chrome instance"
+    },
+    {
+      "start": 1409.52,
+      "end": 1415.04,
+      "text": " You could use tail scale or anything like that. I run a mac mini right there that I do a lot of remote stuff on so yeah"
+    },
+    {
+      "start": 1415.44,
+      "end": 1418.48,
+      "text": " Tail scale cloudflare tunnels all that good stuff"
+    },
+    {
+      "start": 1419.52,
+      "end": 1422.32,
+      "text": " Might be a good option. Although you have to worry about like"
+    },
+    {
+      "start": 1422.8,
+      "end": 1426.8,
+      "text": " You're just opening up a browser to the internet so you make sure you put some authentication or"
+    },
+    {
+      "start": 1427.44,
+      "end": 1432.56,
+      "text": " Stop ip white list something like that on there. Yeah, I do think that you can use this with"
+    },
+    {
+      "start": 1433.28,
+      "end": 1434.24,
+      "text": " Edge"
+    },
+    {
+      "start": 1434.32,
+      "end": 1436.88,
+      "text": " So when you start up at Microsoft Edge"
+    },
+    {
+      "start": 1437.28,
+      "end": 1443.36,
+      "text": " You're a bit you're one of the flags you can run it is the remote port and it will give you a port and I'll start up a"
+    },
+    {
+      "start": 1443.92,
+      "end": 1445.6,
+      "text": " a dev tools"
+    },
+    {
+      "start": 1445.6,
+      "end": 1448.56,
+      "text": " Remote server that you can remotely connect to"
+    },
+    {
+      "start": 1449.2,
+      "end": 1453.6,
+      "text": " So I believe with the flags that you pass to the mcp.json"
+    },
+    {
+      "start": 1454.08,
+      "end": 1460.64,
+      "text": " You can pass a there's they have this thing called connect url in the docs that is simply just mentioned"
+    },
+    {
+      "start": 1461.0400000000002,
+      "end": 1465.1200000000001,
+      "text": " And there's no examples. It's not even part of the docs. It's just in like one of the little blurbs"
+    },
+    {
+      "start": 1465.2,
+      "end": 1469.2800000000002,
+      "text": " So I'm pretty sure you can use that to connect to a browser that is"
+    },
+    {
+      "start": 1470.3200000000002,
+      "end": 1474.4,
+      "text": " Not chrome. So if you're running like a chromium instance or I'm assuming an edge"
+    },
+    {
+      "start": 1474.48,
+      "end": 1476.24,
+      "text": " I don't know that you necessarily would want to"
+    },
+    {
+      "start": 1476.88,
+      "end": 1482.3200000000002,
+      "text": " Because I don't see the benefit to it right now if you were to use a different one"
+    },
+    {
+      "start": 1482.3200000000002,
+      "end": 1484.3200000000002,
+      "text": " It's not like it's going to be using"
+    },
+    {
+      "start": 1484.3200000000002,
+      "end": 1487.6000000000001,
+      "text": " Your logged in state of your Microsoft edge instance"
+    },
+    {
+      "start": 1488.24,
+      "end": 1494.1599999999999,
+      "text": " It will still fire up a brand new instance of chromium you would have to manually log in to all of those things"
+    },
+    {
+      "start": 1494.56,
+      "end": 1497.1999999999998,
+      "text": " There are there's this thing called browser dash use"
+    },
+    {
+      "start": 1497.84,
+      "end": 1501.04,
+      "text": " Which if you're trying to like scrape websites and"
+    },
+    {
+      "start": 1502.48,
+      "end": 1507.28,
+      "text": " Pretend that you're a human that seems to be what most people are using in this space. It's"
+    },
+    {
+      "start": 1508.0,
+      "end": 1510.0,
+      "text": " Like kind of a step forward past"
+    },
+    {
+      "start": 1510.3999999999999,
+      "end": 1514.9599999999998,
+      "text": " Puppeteer and they also have hosted versions as well if you need just need a quick browser that's"
+    },
+    {
+      "start": 1515.3600000000001,
+      "end": 1517.3600000000001,
+      "text": " Running in the cloud you can pay them for that"
+    },
+    {
+      "start": 1518.16,
+      "end": 1525.6000000000001,
+      "text": " So limitations of this thing like what you can't you do west mentioned already once that it doesn't have access to the accessibility issues"
+    },
+    {
+      "start": 1526.08,
+      "end": 1531.3600000000001,
+      "text": " You know there's tools out there that you can run on your code base that will check for accessibility markers and stuff like that"
+    },
+    {
+      "start": 1531.3600000000001,
+      "end": 1534.8,
+      "text": " But having that in the browser would be super nice and super handy"
+    },
+    {
+      "start": 1535.04,
+      "end": 1537.2,
+      "text": " Granted you might be able to do some of that even"
+    },
+    {
+      "start": 1537.2,
+      "end": 1538.56,
+      "text": " I know you can't do all these things"
+    },
+    {
+      "start": 1538.56,
+      "end": 1542.08,
+      "text": " But at least like color checking and stuff you might be able to do with the screenshots"
+    },
+    {
+      "start": 1542.48,
+      "end": 1546.6399999999999,
+      "text": " But it does feel like it would be nice to just have that right baked in there"
+    },
+    {
+      "start": 1547.12,
+      "end": 1552.56,
+      "text": " Totally and you can run like lighthouse from the CLI to do those types of things"
+    },
+    {
+      "start": 1552.6399999999999,
+      "end": 1555.76,
+      "text": " But since it is part of the dev tools"
+    },
+    {
+      "start": 1556.0,
+      "end": 1559.28,
+      "text": " I would like access to that via the mcp server as well"
+    },
+    {
+      "start": 1559.52,
+      "end": 1562.8799999999999,
+      "text": " And I also like I asked it hey check for accessibility issues"
+    },
+    {
+      "start": 1563.36,
+      "end": 1565.4399999999998,
+      "text": " And all it did was just it ran like"
+    },
+    {
+      "start": 1566.0,
+      "end": 1570.1599999999999,
+      "text": " 40 lines of JavaScript programmatically on the website and just check for like"
+    },
+    {
+      "start": 1570.8000000000002,
+      "end": 1574.0800000000002,
+      "text": " Aria labels and like text on all of them"
+    },
+    {
+      "start": 1574.3200000000002,
+      "end": 1578.16,
+      "text": " It didn't do a great job that like something like the axe suite or something would do"
+    },
+    {
+      "start": 1578.8000000000002,
+      "end": 1586.5600000000002,
+      "text": " So I would like a little bit better accessibility tools built into this and I kind of bet that that's that's coming at some point"
+    },
+    {
+      "start": 1587.52,
+      "end": 1591.1200000000001,
+      "text": " And then there's direct access with all the CSS tooling as well"
+    },
+    {
+      "start": 1592.0,
+      "end": 1598.4,
+      "text": " I asked it like you know when you open up your dev tools and you inspect element on like a h1 tag"
+    },
+    {
+      "start": 1599.3600000000001,
+      "end": 1601.1200000000001,
+      "text": " It'd be nice to know"
+    },
+    {
+      "start": 1601.1200000000001,
+      "end": 1605.2,
+      "text": " What color is it and you can get all of these things with like it get computed style"
+    },
+    {
+      "start": 1605.44,
+      "end": 1608.4,
+      "text": " And that's what it actually is doing when you ask it questions"
+    },
+    {
+      "start": 1608.72,
+      "end": 1612.64,
+      "text": " But full access to the full CSS suite you can see what"
+    },
+    {
+      "start": 1613.3600000000001,
+      "end": 1615.3600000000001,
+      "text": " CSS variables are"
+    },
+    {
+      "start": 1615.52,
+      "end": 1620.16,
+      "text": " You can use see which line of code things were written on I think that would be"
+    },
+    {
+      "start": 1620.88,
+      "end": 1626.16,
+      "text": " Really nice to have full access and also like color nice color issues, you know"
+    },
+    {
+      "start": 1626.5600000000002,
+      "end": 1631.92,
+      "text": " Yeah, what's a good color for this changes color in dark mode loop through all of my paragraph tags and make sure there's no"
+    },
+    {
+      "start": 1632.24,
+      "end": 1637.1200000000001,
+      "text": " Nothing there it kind of gets more into the accessibility side of things but it for this to work"
+    },
+    {
+      "start": 1637.44,
+      "end": 1640.64,
+      "text": " AI would have to actually understand CSS which we all know"
+    },
+    {
+      "start": 1641.68,
+      "end": 1648.24,
+      "text": " Does not it has no clue is a purple gradient yeah in CSS. So that's all we got an absolute position everything"
+    },
+    {
+      "start": 1648.72,
+      "end": 1652.0,
+      "text": " Yeah, so that is the chrome mcp server big fan of that"
+    },
+    {
+      "start": 1652.24,
+      "end": 1656.0,
+      "text": " This is really exciting. I think these are probably early days for this type of thing"
+    },
+    {
+      "start": 1656.08,
+      "end": 1659.68,
+      "text": " And I bet that more of these tools will start to show up over time"
+    },
+    {
+      "start": 1660.24,
+      "end": 1664.08,
+      "text": " But certainly check it out throw it in your your editor's rotating your chat app"
+    },
+    {
+      "start": 1665.04,
+      "end": 1669.92,
+      "text": " Even if you just like turn it off. I don't like having all my mcp servers turned on all the time"
+    },
+    {
+      "start": 1670.64,
+      "end": 1672.64,
+      "text": " Because I feel like it just clutteres"
+    },
+    {
+      "start": 1672.8,
+      "end": 1674.0,
+      "text": " the"
+    },
+    {
+      "start": 1674.0,
+      "end": 1677.76,
+      "text": " Contacts so I'll just turn them on project by project as they need them"
+    },
+    {
+      "start": 1678.16,
+      "end": 1681.68,
+      "text": " Rather than having them turn on for absolutely everything with the exception of like maybe"
+    },
+    {
+      "start": 1681.76,
+      "end": 1685.8400000000001,
+      "text": " Contacts seven. Yeah, yeah, context seven for show and"
+    },
+    {
+      "start": 1686.4,
+      "end": 1688.88,
+      "text": " I did want to say before we get out of here was while we were"
+    },
+    {
+      "start": 1689.68,
+      "end": 1694.5600000000002,
+      "text": " I was checking out the the new spotlight tools that century released and this is not an ad read"
+    },
+    {
+      "start": 1694.64,
+      "end": 1699.8400000000001,
+      "text": " But we were talking a little bit about the like the front end logging and connecting all the things together"
+    },
+    {
+      "start": 1700.3200000000002,
+      "end": 1704.3200000000002,
+      "text": " and the spotlight by century has an mcp now"
+    },
+    {
+      "start": 1705.04,
+      "end": 1710.0800000000002,
+      "text": " That I think would be very good for this because you're still getting like centuries"
+    },
+    {
+      "start": 1710.8,
+      "end": 1715.6799999999998,
+      "text": " Logging you're getting it locally and now you're getting an mcp to be able to connect to that"
+    },
+    {
+      "start": 1716.32,
+      "end": 1722.3999999999999,
+      "text": " So I this is like hot off the press so I haven't gotten to use it yet by the time you're hearing this"
+    },
+    {
+      "start": 1722.3999999999999,
+      "end": 1725.4399999999998,
+      "text": " I'll have this deeply embedded into my project, but I'm"
+    },
+    {
+      "start": 1726.24,
+      "end": 1728.24,
+      "text": " I'm stoked on this because like I said the century"
+    },
+    {
+      "start": 1728.8799999999999,
+      "end": 1735.52,
+      "text": " Debugging tools have been very good with the AI because they have so much data and they understand how to use that data. So"
+    },
+    {
+      "start": 1736.48,
+      "end": 1742.8799999999999,
+      "text": " Contact baby give this a try for show. Yeah. All right. Thanks everybody for tuning in and we will catch you in the next one"
+    },
+    {
+      "start": 1743.44,
+      "end": 1745.44,
+      "text": " Peace"
+    }
+  ]
+}

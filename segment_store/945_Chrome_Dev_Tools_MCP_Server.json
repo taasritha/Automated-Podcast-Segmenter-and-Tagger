@@ -1,0 +1,48 @@
+
+[
+    {
+        "timeline": "00:00 – 03:45",
+        "title": "Introduction & Host Banter",
+        "summary": "Wes Bos and Scott Tolinski introduce the episode, chatting about Chrome’s new Dev Tools MCP Server. Scott also shares a funny story about chipping his tooth during a previous recording."
+    },
+    {
+        "timeline": "03:46 – 06:25",
+        "title": "Community Announcements",
+        "summary": "The hosts announce an upcoming meetup in San Francisco on October 27 and invite developers to submit their scariest ‘spooky’ web-development mistakes for the annual Halloween episode."
+    },
+    {
+        "timeline": "06:26 – 11:20",
+        "title": "Understanding Chrome’s MCP Server",
+        "summary": "They explain what the new MCP Server is — an AI-driven interface that allows programmatic control of Chrome DevTools. The discussion covers how MCP extends AI models with tools for debugging, inspecting pages, and fetching data."
+    },
+    {
+        "timeline": "11:21 – 14:45",
+        "title": "Automating Workflows with MCP",
+        "summary": "The hosts explore how MCP can automate browser actions similarly to Playwright or Puppeteer. They discuss potential use cases like debugging, testing, and developing real-time feedback loops."
+    },
+    {
+        "timeline": "14:46 – 17:30",
+        "title": "Integrating Figma and Multi-Tool MCPs",
+        "summary": "They imagine connecting multiple MCP servers — for instance, using Figma’s MCP to convert a design into code, compare screenshots, and verify layouts automatically. This highlights the ecosystem potential of connected MCP tools."
+    },
+    {
+        "timeline": "17:31 – 19:15",
+        "title": "Sponsor Segment: Sentry MCP",
+        "summary": "A short sponsor break featuring Sentry’s MCP integration and its AI assistant ‘Sear,’ which can automatically diagnose hard-to-find bugs by analyzing logs and environment variables."
+    },
+    {
+        "timeline": "19:16 – 23:40",
+        "title": "Setup, Security & Technical Design",
+        "summary": "Wes explains that Chrome launches a new isolated instance for MCP interactions to prevent malicious access. They walk through configuring MCP servers in VS Code or via NPX, emphasizing security and sandboxing."
+    },
+    {
+        "timeline": "23:41 – 26:45",
+        "title": "Debugging, Console Errors & Performance",
+        "summary": "Scott demonstrates how MCP can visit a localhost app, capture console errors, and even suggest fixes. They discuss automating debugging, performance checks, and console integrations directly from chat interfaces."
+    },
+    {
+        "timeline": "26:46 – 29:00",
+        "title": "Closing Thoughts & Future of DevTools AI",
+        "summary": "They wrap up reflecting on AI-powered DevTools, Chrome’s new AI insights, and how the future of web development may blend traditional coding with intelligent, browser-based automation."
+    }
+]
